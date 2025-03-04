@@ -18,11 +18,10 @@ from gradio_client import Client, handle_file
 
 async def trellis_generate(client_url, image_path):
     client = Client(client_url)
-    client.predict(
+    temp_image = client.predict(
         image=handle_file(image_path),
         api_name="/preprocess_image_1"
     )
-
     client.predict(
         api_name="/start_session"
     )
@@ -34,7 +33,7 @@ async def trellis_generate(client_url, image_path):
     )
 
     client.predict(
-        image=handle_file(image_path),
+        image=handle_file(temp_image),
         multiimages=[],
         seed=result,
         ss_guidance_strength=7.5,
@@ -59,11 +58,13 @@ async def trellis_multi_generate(client_url, image_path1, image_path2, image_pat
     client.predict(
         api_name="/start_session"
     )
-    client.predict(
-        images=[{"image": handle_file(image_path1), "caption": None},
-                {"image": handle_file(image_path2), "caption": None},
-                {"image": handle_file(image_path3), "caption": None},
-                ],
+
+    image_list = [{"image": handle_file(image_path1), "caption": None},
+                  {"image": handle_file(image_path2), "caption": None},
+                  {"image": handle_file(image_path3), "caption": None}, ]
+
+    temp_images = client.predict(
+        images=image_list,
         api_name="/preprocess_images"
     )
 
@@ -75,16 +76,13 @@ async def trellis_multi_generate(client_url, image_path1, image_path2, image_pat
 
     client.predict(
         image=handle_file(image_path1),
-        multiimages=[{"image": handle_file(image_path1), "caption": None},
-                     {"image": handle_file(image_path2), "caption": None},
-                     {"image": handle_file(image_path3), "caption": None},
-                     ],
+        multiimages=image_list,
         seed=result,
         ss_guidance_strength=7.5,
         ss_sampling_steps=12,
         slat_guidance_strength=3,
         slat_sampling_steps=12,
-        multiimage_algo="stochastic",
+        multiimage_algo="multidiffusion",
         api_name="/image_to_3d"
     )
 
@@ -187,6 +185,7 @@ class LoadImageOperator(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+
 class LoadRightImageOperator(bpy.types.Operator):
     bl_idname = "wm.load_image_1"
     bl_label = "Load Image from Path"
@@ -216,6 +215,7 @@ class LoadRightImageOperator(bpy.types.Operator):
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
 
 class LoadFrontImageOperator(bpy.types.Operator):
     bl_idname = "wm.load_image_2"
@@ -247,6 +247,7 @@ class LoadFrontImageOperator(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+
 class LoadBackImageOperator(bpy.types.Operator):
     bl_idname = "wm.load_image_3"
     bl_label = "Load Image from Path"
@@ -276,6 +277,7 @@ class LoadBackImageOperator(bpy.types.Operator):
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
 
 def load_venv():
     python_exe = os.path.join(
@@ -384,6 +386,7 @@ bpy.types.Scene.image_path = bpy.props.StringProperty(name="image_path", default
 bpy.types.Scene.image_path_1 = bpy.props.StringProperty(name="image_path_1", default="----")
 bpy.types.Scene.image_path_2 = bpy.props.StringProperty(name="image_path_2", default="----")
 bpy.types.Scene.image_path_3 = bpy.props.StringProperty(name="image_path_3", default="----")
+
 
 def register():
     bpy.utils.register_class(ModelFixOperator)
